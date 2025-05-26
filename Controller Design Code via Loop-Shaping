@@ -1,0 +1,62 @@
+% Robust Control Design for a Heat Exchanger using H2 Synthesis
+
+clear; clc;
+s = tf('s');
+
+%% System Parameters
+r = 26;          % Time constant
+k = 78407;       % System gain
+D = 0;           % Time delay [s]
+n = 3;           % System order (cascaded 1st-order lags)
+
+%% Plant Transfer Function (No delay since D=0)
+G = k / (r*s + 1)^n;
+
+% Optional: Add a realistic dead time approximation if D > 0
+% G = G * pade(D, 1); % First-order Pade approximation
+
+% Naming I/O for interconnection
+G.u = 'u2';  
+G.y = 'y';                              
+
+%% Weighting Functions
+% W1: Performance weighting (penalize tracking error)
+W1 = (s + 0.005) / (1000*s + 0.001);  
+W1.u = 'y2';  
+W1.y = 'y11';
+
+% W2: Control weighting (penalize control effort)
+W2 = tf(0.1);           
+W2.u = 'u2';  
+W2.y = 'y12';
+
+%% Interconnection Definition
+S = sumblk('y2 = u1 - y');  % y2 is the tracking error
+P = connect(G, S, W1, W2, {'u1','u2'}, {'y11','y12','y2'});
+
+%% H2 Controller Synthesis
+[K, CL, GAM] = h2syn(P, 1, 1);
+
+%% Closed-Loop Transfer Functions
+L = G * K;          % Loop transfer function
+S = feedback(1, L); % Sensitivity function
+T = 1 - S;          % Complementary sensitivity function
+
+%% Plotting
+figure;
+sigmaplot(L, 'k--', S, 'g-x', T, 'r'); 
+grid on;
+legend('Open Loop Gain (L)', 'Sensitivity (S)', 'Complementary Sensitivity (T)');
+title('Singular Value Plots of Closed-Loop System');
+
+figure;
+step(T); grid on;
+title('Closed-Loop Step Response (T)');
+
+figure;
+bode(L); grid on;
+title('Bode Plot of Open Loop (L)');
+
+figure;
+nyquist(L); grid on;
+title('Nyquist Plot of Open Loop (L)');
