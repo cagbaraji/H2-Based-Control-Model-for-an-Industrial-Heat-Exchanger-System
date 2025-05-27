@@ -1,0 +1,30 @@
+%% Step Response Simulation
+% This script models the dynamic behavior of an industrial heat exchanger using a 
+% third-order transfer function with a time delay,
+
+clc; clear; close all;
+
+%% Define Laplace Variable
+s = tf('s');  % Laplace operator
+
+%% Heat Exchanger Parameters
+Kp   = 37340;  % Process gain [°C/unit input]
+tau  = 15;     % Time constant (thermal inertia) [s]
+n    = 3;      % Order of the system (distributed lag behavior)
+theta = 0.24;  % Time delay (transport/measurement delay) [s]
+
+%% Define Transfer Function
+% G(s) = (Kp) / (tau*s + 1)^n * exp(-theta*s)
+G_heatExchanger = (Kp / (tau * s + 1)^n) * exp(-theta * s);
+
+%% Step Response Simulation
+figure;
+step(G_heatExchanger, 0:0.1:200);  % Simulate over 200 seconds
+title('Step Response of Heat Exchanger Model');
+xlabel('Time (s)');
+ylabel('Temperature Output (°C)');
+grid on;
+
+%% Display Transfer Function in Command Window
+disp('Transfer Function of the Heat Exchanger:');
+G_heatExchanger
